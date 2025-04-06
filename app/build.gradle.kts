@@ -94,6 +94,7 @@ dependencies {
     // Room Database（ローカルキャッシュ用）
     implementation("androidx.room:room-runtime:2.6.0")
     implementation("androidx.room:room-ktx:2.6.0")
+    implementation(libs.androidx.lifecycle.service)
     kapt("androidx.room:room-compiler:2.6.0")
 
     // データストア（設定保存用）

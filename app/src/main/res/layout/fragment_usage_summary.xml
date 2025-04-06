@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="8dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/usageSummaryLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/summaryCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="使用状況サマリー"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <Button
+                            android:id="@+id/refreshButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="更新"
+                            android:textSize="12sp"
+                            android:minHeight="36dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/dateText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="日付: 2025年4月7日" />
+
+                    <TextView
+                        android:id="@+id/totalUsageText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="総使用時間: 0時間0分" />
+
+                    <TextView
+                        android:id="@+id/unlockCountText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="画面ロック解除回数: 0回" />
+
+                    <TextView
+                        android:id="@+id/notificationCountText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="通知数: 0件"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/batteryLevelText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="バッテリーレベル: 0%"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/chartContainer"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="時間帯別平均使用時間（過去7日間）"
+                        android:textStyle="bold"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/usageBarChart"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                android:id="@+id/appUsageTitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="アプリ使用状況"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/appUsageRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@android:layout/simple_list_item_2"
+                tools:itemCount="5" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/emptyStateText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用状況データがありません"
+            android:textSize="16sp"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

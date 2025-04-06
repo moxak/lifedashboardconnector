@@ -201,11 +201,11 @@ class SettingsActivity : AppCompatActivity() {
     /**
      * 同期間隔の保存
      */
-    private fun saveSyncInterval(hours: Int) {
+    private fun saveSyncInterval(minutes: Int) {
         val editor = preferences.edit()
-        editor.putInt("sync_interval_hours", hours)
+        editor.putInt("sync_interval_minutes", minutes)
         editor.apply()
 
-        Toast.makeText(this, "同期間隔を${hours}時間に設定しました", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "同期間隔を${minutes}分に設定しました", Toast.LENGTH_SHORT).show()
     }
 }

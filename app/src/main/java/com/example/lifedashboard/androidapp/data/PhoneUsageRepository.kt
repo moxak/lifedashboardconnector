@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -181,6 +182,169 @@ class PhoneUsageRepository(private val context: Context) {
 
         Log.d(TAG, "収集完了: ${hourlyRecords.size}時間分のデータ")
         return hourlyRecords
+    }
+
+    /**
+     * 現在の時間帯のみの使用状況データを収集
+     */
+    suspend fun collectCurrentHourUsageStats(): List<HourlyUsageRecord> {
+        val now = LocalDateTime.now()
+        val date = now.toLocalDate()
+        val hour = now.hour
+
+        // 現在時刻から1時間前までのデータを取得
+        val startTime = now.minusHours(1)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        val endTime = now.atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        // 時間別・アプリ別の使用状況を格納するマップ
+        val hourlyAppUsageMap = mutableMapOf<String, AppUsageInfo>()
+
+        var screenUnlocks = 0
+        var notifications = getNotificationCount() ?: 0
+        val batteryLevel = getBatteryLevel()
+
+        // イベントデータの取得
+        val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
+        val event = UsageEvents.Event()
+
+        // アプリごとの使用開始時間を記録
+        val appStartTimes = mutableMapOf<String, Long>()
+
+        Log.d(TAG, "収集開始: $date 時間帯: $hour 時")
+
+        while (usageEvents.hasNextEvent()) {
+            usageEvents.getNextEvent(event)
+            val packageName = event.packageName
+
+            // 画面のロック解除をカウント
+            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED &&
+                packageName == "com.android.systemui") {
+                screenUnlocks++
+            }
+
+            // アプリのフォアグラウンド移動時（開始時間を記録）
+            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                appStartTimes[packageName] = event.timeStamp
+            }
+
+            // アプリのバックグラウンド移動時（使用時間を計算）
+            else if (event.eventType == UsageEvents.Event.MOVE_TO_BACKGROUND) {
+                val startTime = appStartTimes[packageName]
+
+                if (startTime != null) {
+                    val usageTime = event.timeStamp - startTime
+
+                    // パッケージ名からアプリ名を取得
+                    val appName = getAppNameFromPackageName(packageName)
+
+                    // アプリの使用情報を更新
+                    val existingInfo = hourlyAppUsageMap[appName]
+                    if (existingInfo != null) {
+                        existingInfo.usageTime += usageTime
+                        existingInfo.openCount += 1
+                    } else {
+                        hourlyAppUsageMap[appName] = AppUsageInfo(
+                            appName = appName,
+                            usageTime = usageTime,
+                            openCount = 1
+                        )
+                    }
+
+                    // 終了したアプリの開始時間を削除
+                    appStartTimes.remove(packageName)
+                }
+            }
+        }
+
+        // 日付をフォーマット（YYYY-MM-DD）
+        val dateStr = date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+        // アプリごとの使用状況をリストに変換
+        val appUsageItems = hourlyAppUsageMap.values.map { appInfo ->
+            AppUsageItem(
+                appName = appInfo.appName,
+                usageTime = TimeUnit.MILLISECONDS.toMinutes(appInfo.usageTime).toInt(),
+                openCount = appInfo.openCount
+            )
+        }.sortedByDescending { it.usageTime }
+
+        // 時間帯の総使用時間を計算
+        val hourlyTotalTime = appUsageItems.sumOf { it.usageTime }
+
+        // 結果リストの作成
+        val hourlyRecords = mutableListOf<HourlyUsageRecord>()
+
+        // 使用時間が0分でもレコードを作成（常に送信するため）
+        hourlyRecords.add(
+            HourlyUsageRecord(
+                date = dateStr,
+                hour = hour,
+                appUsage = appUsageItems,
+                totalUsageTime = hourlyTotalTime,
+                screenUnlocks = screenUnlocks,
+                notifications = notifications,
+                batteryLevel = batteryLevel,
+                timestamp = Instant.now().toString()
+            )
+        )
+
+        Log.d(TAG, "現在時間帯のデータ収集完了")
+        return hourlyRecords
+    }
+
+    /**
+     * 特定の期間の時間別使用パターンを取得（ローカル計算版）
+     */
+    suspend fun getHourlyUsagePattern(startDate: LocalDate, endDate: LocalDate): Map<Int, Double>? {
+        // API経由での取得に失敗した場合にローカルで計算するバックアップとして実装
+        try {
+            // APIを使った実装を先に試す
+            val apiPattern = api.getHourlyUsagePattern(startDate, endDate)
+            if (apiPattern != null) {
+                return apiPattern
+            }
+
+            // APIでの取得に失敗した場合、ローカルで計算
+            val hourlyData = mutableMapOf<Int, MutableList<Int>>()
+
+            // 各日付の時間別データを取得
+            var currentDate = startDate
+            while (!currentDate.isAfter(endDate)) {
+                val records = api.getHourlyUsageData(currentDate) ?: emptyList()
+
+                // 時間帯ごとにデータを集計
+                for (record in records) {
+                    val hour = record.hour
+                    if (!hourlyData.containsKey(hour)) {
+                        hourlyData[hour] = mutableListOf()
+                    }
+                    hourlyData[hour]?.add(record.totalUsageTime)
+                }
+
+                currentDate = currentDate.plusDays(1)
+            }
+
+            // 各時間帯の平均を計算
+            val result = mutableMapOf<Int, Double>()
+            for (hour in 0..23) {
+                val minutesList = hourlyData[hour] ?: emptyList()
+                result[hour] = if (minutesList.isNotEmpty()) {
+                    minutesList.average()
+                } else {
+                    0.0
+                }
+            }
+
+            return result
+        } catch (e: Exception) {
+            Log.e(TAG, "時間別使用パターン取得中にエラー", e)
+            return null
+        }
     }
 
     // 時間別アプリ使用情報を更新するヘルパーメソッド

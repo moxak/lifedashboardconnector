@@ -27,16 +27,16 @@ class BootReceiver : BroadcastReceiver() {
     private fun setupPeriodicWorker(context: Context) {
         // 設定から同期間隔を取得（デフォルト：6時間）
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val syncIntervalHours = prefs.getInt("sync_interval_hours", 6)
+        val syncIntervalMinutes = prefs.getInt("sync_interval_minutes", 5)
 
         // ワーカーの制約を設定
         val constraints = Constraints.Builder()
             .setRequiresBatteryNotLow(true)  // バッテリー残量が少なくない場合のみ実行
             .build()
 
-        // 定期的なワーク要求の作成
+        // 定期的なワーク要求の作成（時間単位から分単位に変更）
         val uploadWorkRequest = PeriodicWorkRequestBuilder<UsageStatsUploadWorker>(
-            syncIntervalHours.toLong(), TimeUnit.HOURS
+            syncIntervalMinutes.toLong(), TimeUnit.MINUTES
         )
             .setConstraints(constraints)
             .build()

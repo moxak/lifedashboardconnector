@@ -1,4 +1,3 @@
-// UsageStatsUploadWorker.kt
 package com.example.lifedashboard.androidapp.service
 
 import android.app.NotificationChannel
@@ -13,11 +12,15 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.example.lifedashboard.androidapp.R
+import com.example.lifedashboard.androidapp.model.SyncRecord
+import com.example.lifedashboard.androidapp.util.DatabaseHelper
 import com.example.lifedashboard.data.HourlyUsageRecord
 import com.example.lifedashboard.data.PhoneUsageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class UsageStatsUploadWorker(
     private val context: Context,
@@ -25,6 +28,7 @@ class UsageStatsUploadWorker(
 ) : CoroutineWorker(context, params) {
 
     private val repository = PhoneUsageRepository(context)
+    private val dbHelper = DatabaseHelper(context)
     private val TAG = "UsageStatsUploadWorker"
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -34,29 +38,21 @@ class UsageStatsUploadWorker(
 
         return withContext(Dispatchers.IO) {
             try {
-                // 直近1週間のデータを収集
-                val today = LocalDate.now()
-                val startDate = today.minusDays(6) // 今日含めた1週間（今日 + 過去6日）
-                Log.d(TAG, "${startDate}から${today}までの利用統計データを収集します")
+                // 現在の時間帯のデータのみを収集する
+                val now = LocalDateTime.now()
+                val formattedTime = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                Log.d(TAG, "[$formattedTime] 現在の利用統計データを収集します")
 
-                // 日付別の収集結果を保持するリスト
-                val allHourlyRecords = mutableListOf<HourlyUsageRecord>()
+                // 現在の時間の使用状況データのみを収集
+                val hourlyRecords = repository.collectCurrentHourUsageStats()
 
-                // 各日のデータを収集
-                for (daysAgo in 6 downTo 0) {
-                    val targetDate = today.minusDays(daysAgo.toLong())
-                    Log.d(TAG, "${targetDate}の利用統計データを収集中...")
-
-                    // 時間別データの収集
-                    val dailyHourlyRecords = repository.collectHourlyUsageStats(targetDate)
-                    allHourlyRecords.addAll(dailyHourlyRecords)
-                    Log.d(TAG, "${targetDate}: ${dailyHourlyRecords.size}件の時間別データを収集しました")
-                }
-
-                Log.d(TAG, "合計${allHourlyRecords.size}件のデータを収集しました")
+                Log.d(TAG, "合計${hourlyRecords.size}件のデータを収集しました")
 
                 // 収集したデータのアップロード
-                val isSuccessful = repository.uploadHourlyUsageStats(allHourlyRecords)
+                val isSuccessful = repository.uploadHourlyUsageStats(hourlyRecords)
+
+                // 同期結果をデータベースに記録
+                recordSyncResult(isSuccessful, hourlyRecords, null)
 
                 if (isSuccessful) {
                     Log.d(TAG, "データアップロードに成功しました")
@@ -68,9 +64,27 @@ class UsageStatsUploadWorker(
             } catch (e: Exception) {
                 Log.e(TAG, "データ処理中にエラーが発生しました", e)
                 e.printStackTrace()
+
+                // エラー情報を記録
+                recordSyncResult(false, emptyList(), e.message ?: "不明なエラー")
+
                 Result.failure()
             }
         }
+    }
+
+    /**
+     * 同期結果をデータベースに記録
+     */
+    private fun recordSyncResult(success: Boolean, records: List<HourlyUsageRecord>, errorMessage: String?) {
+        val syncRecord = SyncRecord(
+            timestamp = LocalDateTime.now(),
+            success = success,
+            recordCount = records.size,
+            errorMessage = errorMessage
+        )
+
+        dbHelper.addSyncRecord(syncRecord)
     }
 
     // フォアグラウンド通知の作成

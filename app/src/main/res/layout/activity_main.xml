@@ -23,7 +23,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="このアプリはあなたのスマートフォンの使用状況を収集し、LifeDashboardサービスと連携します。"
+        android:text="このアプリはあなたのスマートフォンの使用状況を5分ごとに収集し、LifeDashboardサービスと連携します。"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/titleText" />
 
@@ -31,7 +31,7 @@
         android:id="@+id/statusTitleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:text="ステータス"
         android:textSize="18sp"
         android:textStyle="bold"
@@ -42,134 +42,68 @@
         android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:text="初期化中..."
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/statusTitleText" />
 
-    <TextView
-        android:id="@+id/lastSyncTitleText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="最終同期"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/statusText" />
-
-    <TextView
-        android:id="@+id/lastSyncText"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="まだ同期されていません"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/statusText"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lastSyncTitleText" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/usageStatsCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lastSyncText">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="16dp">
+            android:text="同期状況" />
 
-            <TextView
-                android:id="@+id/todayStatsTitleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="今日の使用状況"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="使用サマリー" />
 
-            <TextView
-                android:id="@+id/usageTimeLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="総使用時間:"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/todayStatsTitleText" />
+    </com.google.android.material.tabs.TabLayout>
 
-            <TextView
-                android:id="@+id/usageTimeText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="読込中..."
-                app:layout_constraintStart_toEndOf="@id/usageTimeLabel"
-                app:layout_constraintTop_toTopOf="@id/usageTimeLabel" />
-
-            <TextView
-                android:id="@+id/unlockCountLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="画面ロック解除回数:"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/usageTimeLabel" />
-
-            <TextView
-                android:id="@+id/unlockCountText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="読込中..."
-                app:layout_constraintStart_toEndOf="@id/unlockCountLabel"
-                app:layout_constraintTop_toTopOf="@id/unlockCountLabel" />
-
-            <TextView
-                android:id="@+id/topAppsTitleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="よく使うアプリ"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/unlockCountLabel" />
-
-            <TextView
-                android:id="@+id/topAppsText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="読込中..."
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/topAppsTitleText" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <Button
-        android:id="@+id/syncNowButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="8dp"
-        android:text="今すぐ同期"
-        app:layout_constraintEnd_toStartOf="@id/settingsButton"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tabLayout"
+        app:layout_constraintBottom_toTopOf="@id/buttonLayout"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/usageStatsCard" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <Button
-        android:id="@+id/settingsButton"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:id="@+id/buttonLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="設定"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/syncNowButton"
-        app:layout_constraintTop_toTopOf="@id/syncNowButton" />
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/syncNowButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="今すぐ同期" />
+
+        <Button
+            android:id="@+id/settingsButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="設定" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

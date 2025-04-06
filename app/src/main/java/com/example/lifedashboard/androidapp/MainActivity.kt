@@ -1,12 +1,13 @@
-// MainActivity.kt
 package com.example.lifedashboard.androidapp
 
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.util.Log
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.BackoffPolicy
@@ -16,12 +17,16 @@ import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.lifedashboard.androidapp.databinding.ActivityMainBinding
+import com.example.lifedashboard.androidapp.service.UsageDataUploadService
 import com.example.lifedashboard.androidapp.service.UsageStatsUploadWorker
 import com.example.lifedashboard.androidapp.settings.SettingsActivity
+import com.example.lifedashboard.androidapp.ui.ViewPagerAdapter
+import com.google.android.material.tabs.TabLayoutMediator
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private lateinit var viewPagerAdapter: ViewPagerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +37,13 @@ class MainActivity : AppCompatActivity() {
         if (checkAndRequestPermissions()) {
             // 権限がある場合のみ初期化
             setupPeriodicWorker()
+
+            // バックグラウンドサービスも開始
+            startBackgroundService()
         }
+
+        // ViewPagerとTabLayoutの設定
+        setupViewPager()
 
         // 設定ボタンのクリックリスナー
         binding.settingsButton.setOnClickListener {
@@ -46,6 +57,36 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.statusText.text = "使用状況へのアクセス権限がありません。"
             }
+        }
+    }
+
+    /**
+     * ViewPagerとTabLayoutの設定
+     */
+    private fun setupViewPager() {
+        viewPagerAdapter = ViewPagerAdapter(this)
+        binding.viewPager.adapter = viewPagerAdapter
+
+        // TabLayoutとViewPagerを連携
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "同期状況"
+                1 -> "使用サマリー"
+                else -> "タブ$position"
+            }
+        }.attach()
+    }
+
+    /**
+     * バックグラウンドサービスの開始
+     */
+    private fun startBackgroundService() {
+        try {
+            // フォアグラウンドサービスの起動
+            UsageDataUploadService.startService(this)
+            Log.d("MainActivity", "バックグラウンドサービスを開始しました")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "バックグラウンドサービス開始時にエラーが発生: ${e.message}")
         }
     }
 
@@ -66,8 +107,36 @@ class MainActivity : AppCompatActivity() {
                 .show()
             return false
         } else {
+            // バッテリー最適化除外の確認と要求
+            checkBatteryOptimization()
+
             binding.statusText.text = "使用状況へのアクセス権限があります。データ収集が可能です。"
             return true
+        }
+    }
+
+    /**
+     * バッテリー最適化除外の確認と要求
+     */
+    private fun checkBatteryOptimization() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        val packageName = packageName
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                // バッテリー最適化の対象になっている場合は、除外を要求するダイアログを表示
+                AlertDialog.Builder(this)
+                    .setTitle("バッテリー最適化の除外")
+                    .setMessage("バックグラウンドでの安定した動作のため、バッテリー最適化から除外することをお勧めします。")
+                    .setPositiveButton("設定を開く") { _, _ ->
+                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = android.net.Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("後で") { _, _ -> }
+                    .show()
+            }
         }
     }
 
@@ -82,7 +151,7 @@ class MainActivity : AppCompatActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    // 定期的なデータアップロードの設定を変更
+    // 定期的なデータアップロードの設定を変更 - 5分間隔に
     private fun setupPeriodicWorker() {
         val constraints = Constraints.Builder()
             .setRequiresDeviceIdle(false)  // デバイスがアイドル状態でなくても実行
@@ -91,7 +160,7 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         val uploadWorkRequest = PeriodicWorkRequestBuilder<UsageStatsUploadWorker>(
-            6, TimeUnit.HOURS
+            5, TimeUnit.MINUTES  // 6時間から5分に変更
         )
             .setConstraints(constraints)
             .setBackoffCriteria(
@@ -116,5 +185,10 @@ class MainActivity : AppCompatActivity() {
 
         WorkManager.getInstance(this).enqueue(uploadWorkRequest)
         binding.statusText.text = "同期を開始しました..."
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // バックグラウンドサービスは継続して実行
     }
 }
